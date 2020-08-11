@@ -1,0 +1,1 @@
+# config_wp_new_server_block_for_digitalocean
