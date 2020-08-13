@@ -1,33 +1,87 @@
 #!/bin/bash 
 
-@echo off 
+echo "STARTING!! .."
 
 read -p 'Enter the Wordpress website domain (e.g: example.com): ' websitedomain
-sitedomain="${websitedomain##*.}"
-sitename=  "${websitedomain%.*}"
+wsname    =  "${websitedomain%%.*}"
+wsdomain  = "${websitedomain##*.}"
+wsnamedomain = "${wsname}${wsdomain}"
+echo "sitename: $wsname, domain: $wsdomain"	
 
-echo "sitename: $sitename, domain: $sitedomain"	
+
+
+REQU_PKG="software-properties-common"
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQU_PKG|grep "install ok installed")
+echo Checking for $REQU_PKG: $PKG_OK
+if [ "" = "$PKG_OK" ]; then
+    echo "installing $REQU .."
+    sudo apt install software-properties-common
+fi
+
+REQU_PKG="mariadb-server"
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQU_PKG|grep "install ok installed")
+echo Checking for $REQU_PKG: $PKG_OK
+if [ "" = "$PKG_OK" ]; then
+    echo "installing mariadb .."
+    add-apt-repository ppa:ondrej/php
+    apt-get install mariadb-server mariadb-client php7.0-fpm php7.0-common php7.0-mbstring php7.0-xmlrpc php7.0-soap php7.0-gd php7.0-xml php7.0-intl php7.0-mysql php7.0-cli php7.0-mcrypt php7.0-ldap php7.0-zip php7.0-curl -y;
+
+    mysql_secure_installation
+
+fi
+
+echo "Configuring php-fpm .."
+sed -i 's/(upload_max_filesize = )([0-9]*)(m|M)/upload_max_filesize = 100M/g' /etc/php/7.0/fpm/php.ini
+sed -i 's/(max_execution_time = )([0-9]*)/max_execution_time = 360/g' /etc/php/7.0/fpm/php.ini
+sed -i 's/(cgi.fix_pathinfo = )([0-9]*)/cgi.fix_pathinfo = 0/g' /etc/php/7.0/fpm/php.ini
+
+echo "Creating MySQL db and user .."
+systemctl enable mariadb
+
+BIN_MYSQL = $(which mysql)
+DB_HOST =   "localhost"
+DB_NAME =   "${wsnamedomain}db"
+DB_USER =   "${wsnamedomain}"
+DB_PASS =   "${wsnamedomain}@2021"
+
+SQL1="CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
+SQL2="CREATE USER '${DB_USER}'@'%' IDENTIFIED BY '${DB_PASS}';"
+SQL3="GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'%';"
+SQL4="FLUSH PRIVILEGES;"
+
+if [ -f /root/.my.cnf ]; then
+    $BIN_MYSQL -e "${SQL1}${SQL2}${SQL3}${SQL4}"
+else
+    # If /root/.my.cnf doesn't exist then it'll ask for root password
+    read -p 'Please enter root user MySQL password!: ' mySqlRootPassword
+
+    $BIN_MYSQL -h $DB_HOST -u root -p${mySqlRootPassword} -e "${SQL1}${SQL2}${SQL3}${SQL4}"
+fi
+
+NGINX_PKG="nginx"
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $NGINX_PKG|grep "install ok installed")
+echo Checking for $NGINX_PKG: $PKG_OK
+if [ "" = "$PKG_OK" ]; then
+    echo "installing NGINX .."
+    sudo apt update
+    sudo apt install nginx
+    sudo ufw enable
+    sudo ufw allow 'Nginx HTTP'
+fi
+
 
 echo "Adjust NGINX Worker Processes & Connections.."
-
-processCount=$(cat /proc/cpuinfo | grep processor)
-
-echo "+process count: $processCount"
-
+processCount=$(cat /proc/cpuinfo | grep processor | grep -o -E '[0-9]+')
+if [ processCount -lt 1 ]; then
+    processCount = 1
+fi
+echo "process count: $processCount"
 sed -i 's/worker_processes 1;/worker_processes $processCount;/g' /etc/nginx/nginx.conf
-
-
 sed -i 's/worker_processes 1;/worker_connections $(processCount*1024);/g' /etc/nginx/nginx.conf
 
-echo "Enabling Gzip.."
-
-gzip on;
-gzip_types text/css text/x-component application/x-javascript application/javascript text/javascript text/x-js text/richtext image/svg+xml text/plain text/xsd text/xsl text/xml image/x-icon;
 
 echo "Creating NGINX .conf files.."
-
 mkdir -p /etc/nginx/global
-
 cd /etc/nginx/global
 
 echo "common.conf .."
@@ -106,8 +160,44 @@ rewrite ^/[_0-9a-zA-Z-]+(/.*\.php)$ $1 last;
 
 EOM
 
-echo "Creating Server Blocks.."
+echo "Creating Server Block for $websitedomain .."
 
-rm -f /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-enabled/default
 
+cat > "/etc/nginx/sites-available/$websitedomain" <<- EOM
+server {
+    # URL: Correct way to redirect URL's
+    server_name $websitedomain;
+    rewrite ^/(.*)$ http://www.$websitedomain/$1 permanent;
+    client_max_body_size 100M;
 
+}
+server {
+    server_name www.$websitedomain;
+    root /home/demouser/sitedir;
+    access_log /var/log/nginx/www.$websitedomain.access.log;
+    error_log /var/log/nginx/www.$websitedomain.error.log;
+    include global/common.conf;
+    include global/wordpress.conf;
+}
+
+EOM
+
+echo "Enabling Server Block Files for $websitedomain .."
+
+sudo ln -s "/etc/nginx/sites-available/$websitedomain" "/etc/nginx/sites-enabled/$websitedomain"
+
+cd ..
+echo "Installing wordpress .."
+cd /tmp
+wget http://wordpress.org/latest.tar.gz
+tar -xzvf latest.tar.gz
+cp -r wordpress/* "/var/www/$websitedomain/"
+chown -R www-data:www-data "/var/www/$websitedomain"
+
+echo "Enabling Nginx and Php"
+systemctl restart php7.0-fpm
+systemctl enable php7.0-fpm
+sudo service nginx reload; 
+
+echo "DONE!!"
