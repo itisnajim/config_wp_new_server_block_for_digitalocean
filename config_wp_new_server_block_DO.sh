@@ -92,7 +92,7 @@ echo "Adjust NGINX Worker Processes & Connections.."
 worker_processes=4
 worker_connections=worker_processes*1024
 echo "worker_processes $worker_processes;"
-echo "worker_connections ${worker_processes*1024};"
+echo "worker_connections $worker_connections;"
 sed -i 's/worker_processes 1;/worker_processes $worker_processes;/g' /etc/nginx/nginx.conf
 sed -i 's/worker_processes 1;/worker_connections $worker_connections;/g' /etc/nginx/nginx.conf
 pause 'Press [Enter] key to continue...'
@@ -133,7 +133,7 @@ location ~ /\. {
     deny all;
 }
 # PERFORMANCE : Set expires headers for static files and turn off logging.
-location ~* ^.+\.(js|css|swf|xml|txt|ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|rss|atom|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf)$ {
+location ~* ^.+\.(js|css|swf|xml|txt|ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|rss|atom|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf)\$ {
     access_log off; log_not_found off; expires 30d;
 }
 EOM
@@ -145,26 +145,26 @@ echo "wordpress.conf .."
 cat > wordpress.conf <<- EOM
 # WORDPRESS : Rewrite rules, sends everything through index.php and keeps the appended query string intact
 location / {
-    try_files $uri $uri/ /index.php?q=$uri&$args;
+    try_files \$uri \$uri/ /index.php?q=\$uri&\$args;
 }
 
 # SECURITY : Deny all attempts to access PHP Files in the uploads directory
-location ~* /(?:uploads|files)/.*\.php$ {
+location ~* /(?:uploads|files)/.*\.php\$ {
     deny all;
 }
 # REQUIREMENTS : Enable PHP Support
-location ~ \.php$ {
+location ~ \.php\$ {
     # SECURITY : Zero day Exploit Protection
-    try_files $uri =404;
+    try_files \$uri =404;
     # ENABLE : Enable PHP, listen fpm sock
-    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_split_path_info ^(.+\.php)(/.+)\$;
     fastcgi_pass unix:/var/run/php5-fpm.sock;
     fastcgi_index index.php;
     include fastcgi_params;
 }
 # PLUGINS : Enable Rewrite Rules for Yoast SEO SiteMap
-rewrite ^/sitemap_index\.xml$ /index.php?sitemap=1 last;
-rewrite ^/([^/]+?)-sitemap([0-9]+)?\.xml$ /index.php?sitemap=$1&sitemap_n=$2 last;
+rewrite ^/sitemap_index\.xml\$ /index.php?sitemap=1 last;
+rewrite ^/([^/]+?)-sitemap([0-9]+)?\.xml\$ /index.php?sitemap=\$1&sitemap_n=\$2 last;
 
 EOM
 pause 'Press [Enter] key to continue...'
@@ -174,10 +174,10 @@ echo "multisite.conf .."
 
 cat > multisite.conf <<- EOM
 # Rewrite rules for WordPress Multi-site.
-if (!-e $request_filename) {
-rewrite /wp-admin$ $scheme://$host$uri/ permanent;
-rewrite ^/[_0-9a-zA-Z-]+(/wp-.*) $1 last;
-rewrite ^/[_0-9a-zA-Z-]+(/.*\.php)$ $1 last;
+if (!-e \$request_filename) {
+rewrite /wp-admin\$ \$scheme://\$host\$uri/ permanent;
+rewrite ^/[_0-9a-zA-Z-]+(/wp-.*) \$1 last;
+rewrite ^/[_0-9a-zA-Z-]+(/.*\.php)\$ \$1 last;
 }
 
 EOM
@@ -192,7 +192,7 @@ cat > "/etc/nginx/sites-available/$websitedomain" <<- EOM
 server {
     # URL: Correct way to redirect URL's
     server_name $websitedomain;
-    rewrite ^/(.*)$ http://www.$websitedomain/$1 permanent;
+    rewrite ^/(.*)$ http://www.$websitedomain/\$1 permanent;
     client_max_body_size 100M;
 
 }
