@@ -51,7 +51,8 @@ BIN_MYSQL=$(which mysql)
 DB_HOST="localhost"
 DB_NAME="${wsnamedomain}db"
 DB_USER="${wsnamedomain}"
-DB_PASS="${wsnamedomain}@Y2021"
+DB_PWD_SUFFIX="@Y2021"
+DB_PASS="${wsnamedomain}${DB_PWD_SUFFIX}"
 
 SQL1="CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
 SQL2="CREATE USER '${DB_USER}'@'%' IDENTIFIED BY '${DB_PASS}';"
