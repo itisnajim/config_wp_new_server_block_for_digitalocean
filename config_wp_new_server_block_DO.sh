@@ -15,7 +15,7 @@ pause 'Press [Enter] key to continue...'
 
 
 REQU_PKG="software-properties-common"
-PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQU_PKG|grep "install ok installed")
+PKG_OK=$(dpkg-query -W -f='${Status}' $REQU_PKG 2>/dev/null | grep -c "ok installed")
 echo Checking for $REQU_PKG: $PKG_OK
 if [ "" = "$PKG_OK" ]; then
     echo "installing $REQU .."
@@ -24,8 +24,8 @@ fi
 
 REQU_PKG="mariadb-server"
 MYSQL_PKG="mysql-server"
-PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQU_PKG|grep "install ok installed")
-MYSQL_OK=$(dpkg-query -W --showformat='${Status}\n' $MYSQL_PKG|grep "install ok installed")
+PKG_OK=$(dpkg-query -W -f='${Status}' $REQU_PKG 2>/dev/null | grep -c "ok installed")
+MYSQL_OK=$(dpkg-query -W -f='${Status}' $MYSQL_PKG 2>/dev/null | grep -c "ok installed")
 echo Checking for $REQU_PKG: $PKG_OK
 if [ "" = "$PKG_OK" ] || [ "" = "$MYSQL_OK" ]; then
     echo "installing mariadb .."
@@ -71,7 +71,7 @@ echo "mysql bin: $BIN_MYSQL"
 pause 'Press [Enter] key to continue...'
 
 NGINX_PKG="nginx"
-PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $NGINX_PKG|grep "install ok installed")
+PKG_OK=$(dpkg-query -W -f='${Status}' $NGINX_PKG 2>/dev/null | grep -c "ok installed")
 echo Checking for $NGINX_PKG: $PKG_OK
 if [ "" = "$PKG_OK" ]; then
     echo "installing NGINX .."
