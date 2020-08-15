@@ -90,7 +90,7 @@ echo "Adjust NGINX Worker Processes & Connections.."
 #    worker_processes=1
 #fi
 worker_processes=4
-worker_connections=worker_processes*1024
+worker_connections=$(( 1024*worker_processes ))
 echo "worker_processes $worker_processes;"
 echo "worker_connections $worker_connections;"
 sed -i 's/worker_processes 1;/worker_processes $worker_processes;/g' /etc/nginx/nginx.conf
