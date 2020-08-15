@@ -85,15 +85,16 @@ fi
 
 
 echo "Adjust NGINX Worker Processes & Connections.."
-processCount=$(cat /proc/cpuinfo | grep processor | grep -o -E '[0-9]+')
-if [ processCount -lt 1 ]; then
-    processCount=1
-fi
-echo "process count: $processCount"
-sed -i 's/worker_processes 1;/worker_processes $processCount;/g' /etc/nginx/nginx.conf
-sed -i 's/worker_processes 1;/worker_connections ${processCount*1024};/g' /etc/nginx/nginx.conf
-echo "worker_processes $processCount;"
-echo "worker_connections ${processCount*1024};"
+#worker_processes=$(cat /proc/cpuinfo | grep processor | grep -o -E '[0-9]+')
+#if [ worker_processes -lt 1 ]; then
+#    worker_processes=1
+#fi
+worker_processes=4
+worker_connections=worker_processes*1024
+echo "worker_processes $worker_processes;"
+echo "worker_connections ${worker_processes*1024};"
+sed -i 's/worker_processes 1;/worker_processes $worker_processes;/g' /etc/nginx/nginx.conf
+sed -i 's/worker_processes 1;/worker_connections $worker_connections;/g' /etc/nginx/nginx.conf
 pause 'Press [Enter] key to continue...'
 
 
