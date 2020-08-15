@@ -1,14 +1,17 @@
 #!/bin/bash 
+# init
+function pause(){
+   read -p "$*"
+}
 
 echo "STARTING!! .."
 
 read -p 'Enter the Wordpress website domain (e.g: example.com): ' websitedomain
-
 wsname="${websitedomain%%.*}"
 wsdomain="${websitedomain##*.}"
 wsnamedomain="${wsname}${wsdomain}"
 echo "sitename: $wsname, domain: $wsdomain"	
-
+pause 'Press [Enter] key to continue...'
 
 
 REQU_PKG="software-properties-common"
@@ -31,12 +34,15 @@ if [ "" = "$PKG_OK" ] || [ "" = "$MYSQL_OK" ]; then
 
     mysql_secure_installation
 
+    pause 'Press [Enter] key to continue...'
+
 fi
 
 echo "Configuring php-fpm .."
 sed -i 's/(upload_max_filesize = )([0-9]*)(m|M)/upload_max_filesize = 100M/g' /etc/php/7.0/fpm/php.ini
 sed -i 's/(max_execution_time = )([0-9]*)/max_execution_time = 360/g' /etc/php/7.0/fpm/php.ini
 sed -i 's/(cgi.fix_pathinfo = )([0-9]*)/cgi.fix_pathinfo = 0/g' /etc/php/7.0/fpm/php.ini
+pause 'Press [Enter] key to continue...'
 
 echo "Creating MySQL db and user .."
 systemctl enable mariadb
@@ -60,6 +66,8 @@ else
 
     $BIN_MYSQL -h $DB_HOST -u root -p${mySqlRootPassword} -e "${SQL1}${SQL2}${SQL3}${SQL4}"
 fi
+echo "mysql bin: $BIN_MYSQL"
+pause 'Press [Enter] key to continue...'
 
 NGINX_PKG="nginx"
 PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $NGINX_PKG|grep "install ok installed")
@@ -70,6 +78,8 @@ if [ "" = "$PKG_OK" ]; then
     sudo apt install nginx
     sudo ufw enable
     sudo ufw allow 'Nginx HTTP'
+
+    pause 'Press [Enter] key to continue...'
 fi
 
 
@@ -80,7 +90,10 @@ if [ processCount -lt 1 ]; then
 fi
 echo "process count: $processCount"
 sed -i 's/worker_processes 1;/worker_processes $processCount;/g' /etc/nginx/nginx.conf
-sed -i 's/worker_processes 1;/worker_connections $(processCount*1024);/g' /etc/nginx/nginx.conf
+sed -i 's/worker_processes 1;/worker_connections ${processCount*1024};/g' /etc/nginx/nginx.conf
+echo "worker_processes $processCount;"
+echo "worker_connections ${processCount*1024};"
+pause 'Press [Enter] key to continue...'
 
 
 echo "Creating NGINX .conf files.."
@@ -122,6 +135,8 @@ location ~* ^.+\.(js|css|swf|xml|txt|ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|rss|a
     access_log off; log_not_found off; expires 30d;
 }
 EOM
+pause 'Press [Enter] key to continue...'
+
 
 echo "wordpress.conf .."
 
@@ -150,6 +165,8 @@ rewrite ^/sitemap_index\.xml$ /index.php?sitemap=1 last;
 rewrite ^/([^/]+?)-sitemap([0-9]+)?\.xml$ /index.php?sitemap=$1&sitemap_n=$2 last;
 
 EOM
+pause 'Press [Enter] key to continue...'
+
 
 echo "multisite.conf .."
 
@@ -162,6 +179,8 @@ rewrite ^/[_0-9a-zA-Z-]+(/.*\.php)$ $1 last;
 }
 
 EOM
+pause 'Press [Enter] key to continue...'
+
 
 echo "Creating Server Block for $websitedomain .."
 
@@ -185,16 +204,17 @@ server {
 }
 
 EOM
+pause 'Press [Enter] key to continue...'
+
 
 echo "Enabling Server Block Files for $websitedomain .."
-
 sudo ln -s "/etc/nginx/sites-available/$websitedomain" "/etc/nginx/sites-enabled/$websitedomain"
 
-cd ..
 echo "Installing wordpress .."
 cd /tmp
 wget http://wordpress.org/latest.tar.gz
 tar -xzvf latest.tar.gz
+mkdir -p "/var/www/$websitedomain/"
 cp -r wordpress/* "/var/www/$websitedomain/"
 chown -R www-data:www-data "/var/www/$websitedomain"
 
@@ -202,5 +222,11 @@ echo "Enabling Nginx and Php"
 systemctl restart php7.0-fpm
 systemctl enable php7.0-fpm
 sudo service nginx reload; 
+
+echo "sitename: $wsname, domain: $wsdomain"	
+echo "db host: $DB_HOST"
+echo "db name: $DB_NAME"
+echo "db user: $DB_USER"
+echo "db pwd: $DB_PASS"
 
 echo "DONE!!"
