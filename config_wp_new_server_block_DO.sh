@@ -3,9 +3,10 @@
 echo "STARTING!! .."
 
 read -p 'Enter the Wordpress website domain (e.g: example.com): ' websitedomain
-wsname    =  "${websitedomain%%.*}"
-wsdomain  = "${websitedomain##*.}"
-wsnamedomain = "${wsname}${wsdomain}"
+
+wsname="${websitedomain%%.*}"
+wsdomain="${websitedomain##*.}"
+wsnamedomain="${wsname}${wsdomain}"
 echo "sitename: $wsname, domain: $wsdomain"	
 
 
@@ -19,9 +20,11 @@ if [ "" = "$PKG_OK" ]; then
 fi
 
 REQU_PKG="mariadb-server"
+MYSQL_PKG="mysql-server"
 PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQU_PKG|grep "install ok installed")
+MYSQL_OK=$(dpkg-query -W --showformat='${Status}\n' $MYSQL_PKG|grep "install ok installed")
 echo Checking for $REQU_PKG: $PKG_OK
-if [ "" = "$PKG_OK" ]; then
+if [ "" = "$PKG_OK" ] || [ "" = "$MYSQL_OK" ]; then
     echo "installing mariadb .."
     add-apt-repository ppa:ondrej/php
     apt-get install mariadb-server mariadb-client php7.0-fpm php7.0-common php7.0-mbstring php7.0-xmlrpc php7.0-soap php7.0-gd php7.0-xml php7.0-intl php7.0-mysql php7.0-cli php7.0-mcrypt php7.0-ldap php7.0-zip php7.0-curl -y;
@@ -38,11 +41,11 @@ sed -i 's/(cgi.fix_pathinfo = )([0-9]*)/cgi.fix_pathinfo = 0/g' /etc/php/7.0/fpm
 echo "Creating MySQL db and user .."
 systemctl enable mariadb
 
-BIN_MYSQL = $(which mysql)
-DB_HOST =   "localhost"
-DB_NAME =   "${wsnamedomain}db"
-DB_USER =   "${wsnamedomain}"
-DB_PASS =   "${wsnamedomain}@2021"
+BIN_MYSQL=$(which mysql)
+DB_HOST="localhost"
+DB_NAME="${wsnamedomain}db"
+DB_USER="${wsnamedomain}"
+DB_PASS="${wsnamedomain}@2021"
 
 SQL1="CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
 SQL2="CREATE USER '${DB_USER}'@'%' IDENTIFIED BY '${DB_PASS}';"
@@ -73,7 +76,7 @@ fi
 echo "Adjust NGINX Worker Processes & Connections.."
 processCount=$(cat /proc/cpuinfo | grep processor | grep -o -E '[0-9]+')
 if [ processCount -lt 1 ]; then
-    processCount = 1
+    processCount=1
 fi
 echo "process count: $processCount"
 sed -i 's/worker_processes 1;/worker_processes $processCount;/g' /etc/nginx/nginx.conf
