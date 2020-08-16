@@ -18,7 +18,7 @@ REQU_PKG="software-properties-common"
 #dpkg-query -W -f='${Status}' software-properties-common 2>/dev/null | grep -c "ok installed"
 PKG_OK=$(dpkg-query -W -f='${Status}' $REQU_PKG 2>/dev/null | grep -c "ok installed")
 echo "Checking for $REQU_PKG: $PKG_OK"
-if [ "" = "$PKG_OK" ]; then
+if [[ "" = "$PKG_OK" || "0" = "$PKG_OK" ]]; then
     echo "installing $REQU .."
     sudo apt install software-properties-common
 fi
@@ -30,7 +30,7 @@ PKG_OK=$(dpkg-query -W -f='${Status}' $REQU_PKG 2>/dev/null | grep -c "ok instal
 #dpkg-query -W -f='${Status}' mysql-server 2>/dev/null | grep -c "ok installed"
 MYSQL_OK=$(dpkg-query -W -f='${Status}' $MYSQL_PKG 2>/dev/null | grep -c "ok installed")
 echo "Checking for $REQU_PKG: $PKG_OK"
-if [ "" = "$PKG_OK" ] || [ "" = "$MYSQL_OK" ]; then
+if [[ "" = "$PKG_OK" || "0" = "$PKG_OK" || "" = "$MYSQL_OK" || "0" = "$MYSQL_OK" ]]; then
     echo "installing mariadb .."
     add-apt-repository ppa:ondrej/php
     apt-get install mariadb-server mariadb-client php7.1-fpm php7.1-common php7.1-mbstring php7.1-xmlrpc php7.1-soap php7.1-gd php7.1-xml php7.1-intl php7.1-mysql php7.1-cli php7.1-mcrypt php7.1-ldap php7.1-zip php7.1-curl -y;
@@ -76,7 +76,7 @@ pause 'Press [Enter] key to continue...'
 NGINX_PKG="nginx"
 PKG_OK=$(dpkg-query -W -f='${Status}' $NGINX_PKG 2>/dev/null | grep -c "ok installed")
 echo Checking for $NGINX_PKG: $PKG_OK
-if [ "" = "$PKG_OK" ]; then
+if [[ "" = "$PKG_OK" || "0" = "$PKG_OK" ]]; then
     echo "installing NGINX .."
     sudo apt update
     sudo apt install nginx
@@ -155,13 +155,13 @@ touch "/var/www/html/$websitedomain/wp-config.php"
 cat > "/var/www/html/$websitedomain/wp-config.php" <<- EOM
 <?php
 /** The name of the database for WordPress */
-define( 'DB_NAME', 'database_name_here' );
+define( 'DB_NAME', '$DB_NAME' );
 
 /** MySQL database username */
-define( 'DB_USER', 'username_here' );
+define( 'DB_USER', '$DB_USER' );
 
 /** MySQL database password */
-define( 'DB_PASSWORD', 'password_here' );
+define( 'DB_PASSWORD', '$DB_PASS' );
 
 /** MySQL hostname */
 define( 'DB_HOST', 'localhost' );
