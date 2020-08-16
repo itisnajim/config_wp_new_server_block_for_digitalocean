@@ -177,7 +177,7 @@ define( 'DB_COLLATE', '' );
 
 $WP_Auth_Keys_Salts
 
-$table_prefix = 'wp_';
+\$table_prefix = 'wp_';
 
 define( 'WP_DEBUG', false );
 
