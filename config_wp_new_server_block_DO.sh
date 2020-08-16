@@ -142,8 +142,10 @@ echo "Installing wordpress .."
 cd /tmp
 wget http://wordpress.org/latest.tar.gz
 tar -xzvf latest.tar.gz
-mkdir -p "/var/www/$websitedomain"
-cp -r wordpress/* "/var/www/$websitedomain"
+
+mkdir -p "/var/www/html/$websitedomain"
+
+cp -r wordpress/* "/var/www/html/$websitedomain"
 
 #cp "/var/www/html/$websitedomain/wp-config-sample.php" "/var/www/html/$websitedomain/wp-config.php"
 #sed -i 's/database_name_here/$DB_NAME/g' /var/www/html/$websitedomain/wp-config.php
@@ -190,7 +192,7 @@ require_once ABSPATH . 'wp-settings.php';
 EOM
 
 
-sudo chown -R www-data:www-data "/var/www/$websitedomain"
+sudo chown -R www-data:www-data "/var/www/html/$websitedomain"
 sudo chmod -R 755 /var/www/html
 
 pause 'Press [Enter] key to continue...'
