@@ -151,7 +151,7 @@ cp -r wordpress/* "/var/www/$websitedomain"
 #sed -i 's/password_here/$DB_PASS/g' /var/www/html/$websitedomain/wp-config.php
 
 WP_Auth_Keys_Salts=$(curl https://api.wordpress.org/secret-key/1.1/salt/)
-touch "/var/www/html/$websitedomain/wp-config.php"
+cp -i "/var/www/html/$websitedomain/wp-config-sample.php" "/var/www/html/$websitedomain/wp-config.php"
 cat > "/var/www/html/$websitedomain/wp-config.php" <<- EOM
 <?php
 /** The name of the database for WordPress */
@@ -197,8 +197,8 @@ pause 'Press [Enter] key to continue...'
 
 
 echo "Enabling Nginx and Php"
-systemctl restart php7.0-fpm
-systemctl enable php7.0-fpm
+systemctl restart php7.1-fpm
+systemctl enable php7.1-fpm
 sudo service nginx reload; 
 
 echo "sitename: $wsname, domain: $wsdomain"	
