@@ -30,7 +30,7 @@ echo Checking for $REQU_PKG: $PKG_OK
 if [ "" = "$PKG_OK" ] || [ "" = "$MYSQL_OK" ]; then
     echo "installing mariadb .."
     add-apt-repository ppa:ondrej/php
-    apt-get install mariadb-server mariadb-client php7.0-fpm php7.0-common php7.0-mbstring php7.0-xmlrpc php7.0-soap php7.0-gd php7.0-xml php7.0-intl php7.0-mysql php7.0-cli php7.0-mcrypt php7.0-ldap php7.0-zip php7.0-curl -y;
+    apt-get install mariadb-server mariadb-client php7.1-fpm php7.1-common php7.1-mbstring php7.1-xmlrpc php7.1-soap php7.1-gd php7.1-xml php7.1-intl php7.1-mysql php7.1-cli php7.1-mcrypt php7.1-ldap php7.1-zip php7.1-curl -y;
 
     mysql_secure_installation
 
@@ -39,9 +39,9 @@ if [ "" = "$PKG_OK" ] || [ "" = "$MYSQL_OK" ]; then
 fi
 
 echo "Configuring php-fpm .."
-sed -i 's/(upload_max_filesize = )([0-9]*)(m|M)/upload_max_filesize = 100M/g' /etc/php/7.0/fpm/php.ini
-sed -i 's/(max_execution_time = )([0-9]*)/max_execution_time = 360/g' /etc/php/7.0/fpm/php.ini
-sed -i 's/(cgi.fix_pathinfo = )([0-9]*)/cgi.fix_pathinfo = 0/g' /etc/php/7.0/fpm/php.ini
+sed -i 's/(upload_max_filesize = )([0-9]*)(m|M)/upload_max_filesize = 100M/g' /etc/php/7.1/fpm/php.ini
+sed -i 's/(max_execution_time = )([0-9]*)/max_execution_time = 360/g' /etc/php/7.1/fpm/php.ini
+sed -i 's/(cgi.fix_pathinfo = )([0-9]*)/cgi.fix_pathinfo = 0/g' /etc/php/7.1/fpm/php.ini
 pause 'Press [Enter] key to continue...'
 
 echo "Creating MySQL db and user .."
@@ -51,8 +51,8 @@ BIN_MYSQL=$(which mysql)
 DB_HOST="localhost"
 DB_NAME="${wsnamedomain}db"
 DB_USER="${wsnamedomain}"
-DB_PWD_SUFFIX="_Y2021"
-DB_PASS="${wsnamedomain}${DB_PWD_SUFFIX}"
+DB_PASS_SUFFIX="_Y$(date +"%Y")"
+DB_PASS="${wsnamedomain}${DB_PASS_SUFFIX}"
 
 SQL1="CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
 SQL2="CREATE USER '${DB_USER}'@'%' IDENTIFIED BY '${DB_PASS}';"
@@ -97,117 +97,40 @@ sed -i 's/worker_processes 1;/worker_processes $worker_processes;/g' /etc/nginx/
 sed -i 's/worker_processes 1;/worker_connections $worker_connections;/g' /etc/nginx/nginx.conf
 pause 'Press [Enter] key to continue...'
 
-
-echo "Creating NGINX .conf files.."
-mkdir -p /etc/nginx/global
-cd /etc/nginx/global
-
-echo "common.conf .."
-
-cat > common.conf <<- EOM
-# Global configuration file.
-# ESSENTIAL : Configure Nginx Listening Port
-listen 80;
-# ESSENTIAL : Default file to serve. If the first file isn't found, 
-index index.php index.html index.htm;
-# ESSENTIAL : no favicon logs
-location = /favicon.ico {
-    log_not_found off;
-    access_log off;
-}
-# ESSENTIAL : robots.txt
-location = /robots.txt {
-    allow all;
-    log_not_found off;
-    access_log off;
-}
-# ESSENTIAL : Configure 404 Pages
-error_page 404 /404.html;
-# ESSENTIAL : Configure 50x Pages
-error_page 500 502 503 504 /50x.html;
-    location = /50x.html {
-        root /usr/share/nginx/www;
-    }
-# SECURITY : Deny all attempts to access hidden files .abcde
-location ~ /\. {
-    deny all;
-}
-# PERFORMANCE : Set expires headers for static files and turn off logging.
-location ~* ^.+\.(js|css|swf|xml|txt|ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|rss|atom|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf)\$ {
-    access_log off; log_not_found off; expires 30d;
-}
-EOM
-pause 'Press [Enter] key to continue...'
-
-
-echo "wordpress.conf .."
-
-cat > wordpress.conf <<- EOM
-# WORDPRESS : Rewrite rules, sends everything through index.php and keeps the appended query string intact
-location / {
-    try_files \$uri \$uri/ /index.php?q=\$uri&\$args;
-}
-
-# SECURITY : Deny all attempts to access PHP Files in the uploads directory
-location ~* /(?:uploads|files)/.*\.php\$ {
-    deny all;
-}
-# REQUIREMENTS : Enable PHP Support
-location ~ \.php\$ {
-    # SECURITY : Zero day Exploit Protection
-    try_files \$uri =404;
-    # ENABLE : Enable PHP, listen fpm sock
-    fastcgi_split_path_info ^(.+\.php)(/.+)\$;
-    fastcgi_pass unix:/var/run/php5-fpm.sock;
-    fastcgi_index index.php;
-    include fastcgi_params;
-}
-# PLUGINS : Enable Rewrite Rules for Yoast SEO SiteMap
-rewrite ^/sitemap_index\.xml\$ /index.php?sitemap=1 last;
-rewrite ^/([^/]+?)-sitemap([0-9]+)?\.xml\$ /index.php?sitemap=\$1&sitemap_n=\$2 last;
-
-EOM
-pause 'Press [Enter] key to continue...'
-
-
-echo "multisite.conf .."
-
-cat > multisite.conf <<- EOM
-# Rewrite rules for WordPress Multi-site.
-if (!-e \$request_filename) {
-rewrite /wp-admin\$ \$scheme://\$host\$uri/ permanent;
-rewrite ^/[_0-9a-zA-Z-]+(/wp-.*) \$1 last;
-rewrite ^/[_0-9a-zA-Z-]+(/.*\.php)\$ \$1 last;
-}
-
-EOM
-pause 'Press [Enter] key to continue...'
-
-
 echo "Creating Server Block for $websitedomain .."
 
 sudo rm -f /etc/nginx/sites-enabled/default
 
 cat > "/etc/nginx/sites-available/$websitedomain" <<- EOM
 server {
+    listen 80;
+    listen [::]:80;
     # URL: Correct way to redirect URL's
     server_name $websitedomain;
     rewrite ^/(.*)$ http://www.$websitedomain/\$1 permanent;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name www.$websitedomain;
+    root /var/www/html/$websitedomain;
+    index  index.php index.html index.htm;
     client_max_body_size 100M;
 
-}
-server {
-    server_name www.$websitedomain;
-    root /home/demouser/sitedir;
-    access_log /var/log/nginx/www.$websitedomain.access.log;
-    error_log /var/log/nginx/www.$websitedomain.error.log;
-    include global/common.conf;
-    include global/wordpress.conf;
+    location / {
+        try_files \$uri \$uri/ /index.php?\$args;        
+    }
+
+    location ~ \\.php\$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass    unix:/var/run/php/php7.1-fpm.sock;
+        fastcgi_param   SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }
 }
 
 EOM
 pause 'Press [Enter] key to continue...'
-
 
 echo "Enabling Server Block Files for $websitedomain .."
 sudo ln -s "/etc/nginx/sites-available/$websitedomain" "/etc/nginx/sites-enabled/$websitedomain"
@@ -216,9 +139,59 @@ echo "Installing wordpress .."
 cd /tmp
 wget http://wordpress.org/latest.tar.gz
 tar -xzvf latest.tar.gz
-mkdir -p "/var/www/$websitedomain/"
-cp -r wordpress/* "/var/www/$websitedomain/"
-chown -R www-data:www-data "/var/www/$websitedomain"
+mkdir -p "/var/www/$websitedomain"
+cp -r wordpress/* "/var/www/$websitedomain"
+
+#cp "/var/www/html/$websitedomain/wp-config-sample.php" "/var/www/html/$websitedomain/wp-config.php"
+#sed -i 's/database_name_here/$DB_NAME/g' /var/www/html/$websitedomain/wp-config.php
+#sed -i 's/username_here/$DB_USER/g' /var/www/html/$websitedomain/wp-config.php
+#sed -i 's/password_here/$DB_PASS/g' /var/www/html/$websitedomain/wp-config.php
+
+WP_Auth_Keys_Salts=$(curl https://api.wordpress.org/secret-key/1.1/salt/)
+touch "/var/www/html/$websitedomain/wp-config.php"
+cat > "/var/www/html/$websitedomain/wp-config.php" <<- EOM
+<?php
+/** The name of the database for WordPress */
+define( 'DB_NAME', 'database_name_here' );
+
+/** MySQL database username */
+define( 'DB_USER', 'username_here' );
+
+/** MySQL database password */
+define( 'DB_PASSWORD', 'password_here' );
+
+/** MySQL hostname */
+define( 'DB_HOST', 'localhost' );
+
+/** Database Charset to use in creating database tables. */
+define( 'DB_CHARSET', 'utf8' );
+
+/** The Database Collate type. Don't change this if in doubt. */
+define( 'DB_COLLATE', '' );
+
+
+$WP_Auth_Keys_Salts
+
+$table_prefix = 'wp_';
+
+define( 'WP_DEBUG', false );
+
+/** Absolute path to the WordPress directory. */
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', __DIR__ . '/' );
+}
+
+/** Sets up WordPress vars and included files. */
+require_once ABSPATH . 'wp-settings.php';
+
+EOM
+
+
+sudo chown -R www-data:www-data "/var/www/$websitedomain"
+sudo chmod -R 755 /var/www/html
+
+pause 'Press [Enter] key to continue...'
+
 
 echo "Enabling Nginx and Php"
 systemctl restart php7.0-fpm
