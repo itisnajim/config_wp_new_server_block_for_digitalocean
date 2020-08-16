@@ -15,8 +15,9 @@ pause 'Press [Enter] key to continue...'
 
 
 REQU_PKG="software-properties-common"
+#dpkg-query -W -f='${Status}' software-properties-common 2>/dev/null | grep -c "ok installed"
 PKG_OK=$(dpkg-query -W -f='${Status}' $REQU_PKG 2>/dev/null | grep -c "ok installed")
-echo Checking for $REQU_PKG: $PKG_OK
+echo "Checking for $REQU_PKG: $PKG_OK"
 if [ "" = "$PKG_OK" ]; then
     echo "installing $REQU .."
     sudo apt install software-properties-common
@@ -24,9 +25,11 @@ fi
 
 REQU_PKG="mariadb-server"
 MYSQL_PKG="mysql-server"
+#dpkg-query -W -f='${Status}' mariadb-server 2>/dev/null | grep -c "ok installed"
 PKG_OK=$(dpkg-query -W -f='${Status}' $REQU_PKG 2>/dev/null | grep -c "ok installed")
+#dpkg-query -W -f='${Status}' mysql-server 2>/dev/null | grep -c "ok installed"
 MYSQL_OK=$(dpkg-query -W -f='${Status}' $MYSQL_PKG 2>/dev/null | grep -c "ok installed")
-echo Checking for $REQU_PKG: $PKG_OK
+echo "Checking for $REQU_PKG: $PKG_OK"
 if [ "" = "$PKG_OK" ] || [ "" = "$MYSQL_OK" ]; then
     echo "installing mariadb .."
     add-apt-repository ppa:ondrej/php
