@@ -13,27 +13,19 @@ wsnamedomain="${wsname}${wsdomain}"
 echo "sitename: $wsname, domain: $wsdomain"	
 pause 'Press [Enter] key to continue...'
 
-
-REQU_PKG="software-properties-common"
-#dpkg-query -W -f='${Status}' software-properties-common 2>/dev/null | grep -c "ok installed"
-PKG_OK=$(dpkg-query -W -f='${Status}' $REQU_PKG 2>/dev/null | grep -c "ok installed")
-echo "Checking for $REQU_PKG: $PKG_OK"
-if [[ "" = "$PKG_OK" || "0" = "$PKG_OK" ]]; then
-    echo "installing $REQU .."
+if ! dpkg-query -W -f='${Status}' software-properties-common  | grep "ok installed"; then
+    echo "installing software-properties-common .."
     sudo apt install software-properties-common
 fi
 
-REQU_PKG="mariadb-server"
-MYSQL_PKG="mysql-server"
-#dpkg-query -W -f='${Status}' mariadb-server 2>/dev/null | grep -c "ok installed"
-PKG_OK=$(dpkg-query -W -f='${Status}' $REQU_PKG 2>/dev/null | grep -c "ok installed")
-#dpkg-query -W -f='${Status}' mysql-server 2>/dev/null | grep -c "ok installed"
-MYSQL_OK=$(dpkg-query -W -f='${Status}' $MYSQL_PKG 2>/dev/null | grep -c "ok installed")
-echo "Checking for $REQU_PKG: $PKG_OK"
-if [[ "" = "$PKG_OK" || "0" = "$PKG_OK" || "" = "$MYSQL_OK" || "0" = "$MYSQL_OK" ]]; then
+PKG_OK=$(dpkg-query -W -f='${Status}' mariadb-server  | grep "ok installed")
+MYSQL_OK=$(dpkg-query -W -f='${Status}' mysql-server  | grep "ok installed")
+if ! { [ PKG_OK ] || [ MYSQL_OK ]; }; then
     echo "installing mariadb .."
     add-apt-repository ppa:ondrej/php
-    apt-get install mariadb-server mariadb-client php7.1-fpm php7.1-common php7.1-mbstring php7.1-xmlrpc php7.1-soap php7.1-gd php7.1-xml php7.1-intl php7.1-mysql php7.1-cli php7.1-mcrypt php7.1-ldap php7.1-zip php7.1-curl -y;
+    sudo apt update
+
+    apt-get install mariadb-server mariadb-client php7.4 php7.4-fpm php7.4-common php7.4-mysql php7.4-xml php7.4-xmlrpc php7.4-curl php7.4-gd php7.4-imagick php7.4-cli php7.4-dev php7.4-imap php7.4-mbstring php7.4-opcache php7.4-soap php7.4-zip php7.4-intl -y;
 
     mysql_secure_installation
 
@@ -54,7 +46,7 @@ BIN_MYSQL=$(which mysql)
 DB_HOST="localhost"
 DB_NAME="${wsnamedomain}db"
 DB_USER="${wsnamedomain}"
-DB_PASS_SUFFIX="_Y$(date +"%Y")"
+DB_PASS_SUFFIX="_Y2020"
 DB_PASS="${wsnamedomain}${DB_PASS_SUFFIX}"
 
 SQL1="CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
@@ -199,8 +191,8 @@ pause 'Press [Enter] key to continue...'
 
 
 echo "Enabling Nginx and Php"
-systemctl restart php7.1-fpm
-systemctl enable php7.1-fpm
+systemctl restart php7.4-fpm
+systemctl enable php7.4-fpm
 sudo service nginx reload; 
 
 echo "sitename: $wsname, domain: $wsdomain"	
