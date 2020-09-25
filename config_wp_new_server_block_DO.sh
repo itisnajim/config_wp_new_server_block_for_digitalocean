@@ -34,9 +34,10 @@ if ! { [ PKG_OK ] || [ MYSQL_OK ]; }; then
 fi
 
 echo "Configuring php-fpm .."
-sed -i 's/(upload_max_filesize = )([0-9]*)(m|M)/upload_max_filesize = 100M/g' /etc/php/7.4/fpm/php.ini
-sed -i 's/(max_execution_time = )([0-9]*)/max_execution_time = 360/g' /etc/php/7.4/fpm/php.ini
-sed -i 's/(cgi.fix_pathinfo = )([0-9]*)/cgi.fix_pathinfo = 0/g' /etc/php/7.4/fpm/php.ini
+sed -ri "s/(upload_max_filesize = )([0-9]*)(m|M)/upload_max_filesize = 100M/g" /etc/php/7.4/fpm/php.ini
+sed -ri "s/(post_max_size = )([0-9]*)(m|M)/post_max_size = 100M/g" /etc/php/7.4/fpm/php.ini
+sed -ri 's/(max_execution_time = )([0-9]*)/max_execution_time = 360/g' /etc/php/7.4/fpm/php.ini
+sed -ri 's/(cgi.fix_pathinfo = )([0-9]*)/cgi.fix_pathinfo = 0/g' /etc/php/7.4/fpm/php.ini
 pause 'Press [Enter] key to continue...'
 
 echo "Creating MySQL db and user .."
