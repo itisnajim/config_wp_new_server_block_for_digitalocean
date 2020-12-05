@@ -7,10 +7,12 @@ function pause(){
 echo "STARTING!! .."
 
 read -p 'Enter the Wordpress website domain (e.g: example.com): ' websitedomain
-wsname="${websitedomain%%.*}"
-wsdomain="${websitedomain##*.}"
-wsnamedomain="${wsname}${wsdomain}"
-echo "sitename: $wsname, domain: $wsdomain"	
+IFS='.' read -r -a array <<< "$websitedomain"
+wsdomain=$(echo ${array[${#array[@]}-1]})
+wsname=$(echo ${websitedomain%.*})
+wsnamedomain=$(echo $wsname | tr . _)
+wsnamedomain="$wsnamedomain$wsdomain"
+echo "$wsname + domain: $wsdomain"	
 pause 'Press [Enter] key to continue...'
 
 if ! dpkg-query -W -f='${Status}' software-properties-common  | grep "ok installed"; then
@@ -63,8 +65,6 @@ else
 
     $BIN_MYSQL -h $DB_HOST -u root -p${mySqlRootPassword} -e "${SQL1}${SQL2}${SQL3}${SQL4}"
 fi
-echo "mysql bin: $BIN_MYSQL"
-pause 'Press [Enter] key to continue...'
 
 NGINX_PKG="nginx"
 PKG_OK=$(dpkg-query -W -f='${Status}' $NGINX_PKG 2>/dev/null | grep -c "ok installed")
@@ -89,8 +89,8 @@ worker_processes=4
 worker_connections=$(( 1024*worker_processes ))
 echo "worker_processes $worker_processes;"
 echo "worker_connections $worker_connections;"
-sed -i 's/worker_processes 1;/worker_processes $worker_processes;/g' /etc/nginx/nginx.conf
-sed -i 's/worker_processes 1;/worker_connections $worker_connections;/g' /etc/nginx/nginx.conf
+sed -ri 's/worker_processes 1;/worker_processes $worker_processes;/g' /etc/nginx/nginx.conf
+sed -ri 's/worker_processes 1;/worker_connections $worker_connections;/g' /etc/nginx/nginx.conf
 pause 'Press [Enter] key to continue...'
 
 echo "Creating Server Block for $websitedomain .."
@@ -126,7 +126,6 @@ server {
 }
 
 EOM
-pause 'Press [Enter] key to continue...'
 
 echo "Enabling Server Block Files for $websitedomain .."
 sudo ln -s "/etc/nginx/sites-available/$websitedomain" "/etc/nginx/sites-enabled/$websitedomain"
@@ -188,15 +187,12 @@ EOM
 sudo chown -R www-data:www-data "/var/www/html/$websitedomain"
 sudo chmod -R 755 /var/www/html
 
-pause 'Press [Enter] key to continue...'
-
-
-echo "Enabling Nginx and Php"
+echo "Enabling Nginx and PHP"
 systemctl restart php7.4-fpm
 systemctl enable php7.4-fpm
 sudo service nginx reload; 
 
-echo "sitename: $wsname, domain: $wsdomain"	
+echo "website: $websitedomain"	
 echo "db host: $DB_HOST"
 echo "db name: $DB_NAME"
 echo "db user: $DB_USER"
